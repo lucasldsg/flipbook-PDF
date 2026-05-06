@@ -508,8 +508,9 @@ async function renderPdfPageToCanvas(canvas, pageNum) {
   const ctx = oc.getContext('2d');
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, oc.width, oc.height);
-  const offX = (canvas.width  - viewport.width)  / 2;
-  const offY = (canvas.height - viewport.height) / 2;
+  // Centrage basé sur oc (offscreen), pas sur canvas (pas encore redimensionné)
+  const offX = (oc.width  - viewport.width)  / 2;
+  const offY = (oc.height - viewport.height) / 2;
   ctx.save();
   ctx.translate(offX, offY);
   await page.render({ canvasContext: ctx, viewport }).promise;
@@ -520,49 +521,12 @@ async function renderPdfPageToCanvas(canvas, pageNum) {
   canvas.getContext('2d').drawImage(oc, 0, 0);
 }
 
-async function renderCoverFullWidth(pageNum) {
-  // Render la couverture en pleine largeur sur les deux canvas côte à côte
-  const page = await pdfDoc.getPage(pageNum);
-  const vp   = page.getViewport({ scale: 1 });
-  const scaleX = (bookW * SCALE) / vp.width;
-  const scaleY = (bookH * SCALE) / vp.height;
-  const scale  = Math.min(scaleX, scaleY);
-  const viewport = page.getViewport({ scale });
-
-  // Canvas temporaire pleine largeur
-  const oc  = document.createElement('canvas');
-  oc.width  = bookW * SCALE;
-  oc.height = bookH * SCALE;
-  const ctx = oc.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, oc.width, oc.height);
-  const offX = (oc.width  - viewport.width)  / 2;
-  const offY = (oc.height - viewport.height) / 2;
-  ctx.save();
-  ctx.translate(offX, offY);
-  await page.render({ canvasContext: ctx, viewport }).promise;
-  ctx.restore();
-
-  // Couper en deux : gauche + droite
-  const lc = document.getElementById('left-canvas');
-  const rc = document.getElementById('right-canvas');
-  lc.width = halfW * SCALE; lc.height = bookH * SCALE;
-  rc.width = halfW * SCALE; rc.height = bookH * SCALE;
-  lc.getContext('2d').drawImage(oc, 0, 0, halfW * SCALE, bookH * SCALE, 0, 0, halfW * SCALE, bookH * SCALE);
-  rc.getContext('2d').drawImage(oc, halfW * SCALE, 0, halfW * SCALE, bookH * SCALE, 0, 0, halfW * SCALE, bookH * SCALE);
-}
-
 async function drawSpread(s) {
   const { left, right } = spreadPages(s);
-  if (s === 0) {
-    // Couverture : pleine largeur sur les deux moitiés
-    await renderCoverFullWidth(1);
-  } else {
-    await Promise.all([
-      renderPdfPageToCanvas(document.getElementById('left-canvas'),  left),
-      renderPdfPageToCanvas(document.getElementById('right-canvas'), right)
-    ]);
-  }
+  await Promise.all([
+    renderPdfPageToCanvas(document.getElementById('left-canvas'),  left),
+    renderPdfPageToCanvas(document.getElementById('right-canvas'), right)
+  ]);
 }
 
 /* ── PAGE TURN ANIMATION ── */
