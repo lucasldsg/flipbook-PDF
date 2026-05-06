@@ -689,15 +689,21 @@ async function loadPDF(file) {
   await new Promise(r => setTimeout(r, 300));
   document.getElementById('loader').classList.remove('visible');
   document.getElementById('app').classList.add('visible');
-  // Attendre que le DOM ait ses vraies dimensions (plusieurs frames)
-  await new Promise(r => setTimeout(r, 100));
-  computeBookSize();
-  applyBookSize();
-  await new Promise(r => setTimeout(r, 50));
-  computeBookSize();
-  applyBookSize();
-  await drawSpread(0);
-  updateUI();
+  // Attendre que #book-stage ait ses vraies dimensions via ResizeObserver
+  await new Promise(r => {
+    const stage = document.getElementById('book-stage');
+    const ro = new ResizeObserver(async (entries) => {
+      if (entries[0].contentRect.width > 0) {
+        ro.disconnect();
+        computeBookSize();
+        applyBookSize();
+        await drawSpread(0);
+        updateUI();
+        r();
+      }
+    });
+    ro.observe(stage);
+  });
 }
 
 /* ── EVENTS ── */
