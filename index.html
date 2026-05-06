@@ -720,17 +720,6 @@ document.addEventListener('keydown', e => {
 document.getElementById('left-half').addEventListener('click', () => turnLeft());
 document.getElementById('right-half').addEventListener('click', () => turnRight());
 
-// Page jump input
-document.getElementById('page-jump').addEventListener('change', e => {
-  const p = parseInt(e.target.value);
-  if (!p || p < 1 || p > totalPages) return;
-  // find spread for this page
-  let s;
-  if (p === 1) s = 0;
-  else s = 1 + Math.floor((p - 2) / 2);
-  goToSpread(s);
-  e.target.value = '';
-});
 
 window.addEventListener('resize', async () => {
   computeBookSize();
@@ -738,10 +727,6 @@ window.addEventListener('resize', async () => {
   if (pdfDoc) await drawSpread(currentSpread);
 });
 
-function toggleFullscreen() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-  else document.exitFullscreen().catch(() => {});
-}
 
 function resetApp() {
   document.getElementById('app').classList.remove('visible');
@@ -789,8 +774,6 @@ async function loadPDFFromUrl(url) {
     document.getElementById('loader').classList.remove('visible');
     document.getElementById('app').classList.add('visible');
 
-    // Cacher le bouton "Changer de PDF" si chargé via URL
-    document.getElementById('change-btn').style.display = 'none';
     updateUI();
   } catch (err) {
     label.textContent = 'Erreur : ' + err.message;
