@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flipbook</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f1eb;
+    --bg2: #ede9e0;
+    --surface: #ffffff;
+    --text: #1a1410;
+    --text2: #6a5e52;
+    --text3: #b0a090;
+    --accent: #c8a96e;
+    --spine: #1a1410;
+    --border: rgba(0,0,0,0.1);
+    --shadow-book: 0 30px 80px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── DROP ZONE ── */
+  #drop-zone {
+    position: fixed; inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: var(--bg);
+    z-index: 100;
+    transition: opacity 0.5s, visibility 0.5s;
+  }
+
+  #drop-zone.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .dz-card {
+    width: 340px;
+    border: 1.5px dashed var(--accent);
+    border-radius: 12px;
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    background: transparent;
+  }
+
+  .dz-card:hover, .dz-card.drag-over {
+    background: rgba(200,169,110,0.06);
+    border-color: #a88848;
+  }
+
+  .dz-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 20px;
+    background: rgba(200,169,110,0.12);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .dz-icon svg { width: 26px; height: 26px; stroke: var(--accent); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  .dz-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .dz-sub {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .dz-btn {
+    margin-top: 20px;
+    display: inline-block;
+    padding: 10px 24px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .dz-btn:hover { background: #a88848; }
+
+  #file-input { display: none; }
+
+  .dz-formats {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── LOADER ── */
+  #loader {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    z-index: 90;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+  }
+
+  #loader.visible { opacity: 1; visibility: visible; }
+
+  .loader-bar-bg {
+    width: 220px; height: 2px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .loader-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 1px;
+  }
+
+  .loader-text {
+    font-size: 12px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── FLIPBOOK APP ── */
+  #app {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.6s, visibility 0.6s;
+  }
+
+  #app.visible { opacity: 1; visibility: visible; }
+
+  /* grain overlay */
+  #app::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── BOOK STAGE ── */
+  #book-stage {
+    position: relative;
+    z-index: 1;
+    perspective: 2400px;
+    flex-shrink: 0;
+  }
+
+  #book {
+    position: relative;
+    transform-style: preserve-3d;
+    /* size set by JS */
+  }
+
+  /* shadow under book */
+  #book-shadow {
+    position: absolute;
+    bottom: -20px; left: 50%;
+    transform: translateX(-50%);
+    width: 88%; height: 28px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.28) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Spine */
+  #spine {
+    position: absolute;
+    left: 50%; top: 0;
+    transform: translateX(-50%);
+    width: 12px; height: 100%;
+    background: linear-gradient(90deg, #0e0e0e 0%, #2a2a2a 40%, #3a3a3a 60%, #0e0e0e 100%);
+    z-index: 15;
+  }
+
+  /* ── PAGES ── */
+  .book-half {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #left-half  { left: 0;   box-shadow: inset -6px 0 18px rgba(0,0,0,0.12); }
+  #right-half { right: 0;  box-shadow: inset  6px 0 18px rgba(0,0,0,0.12); }
+
+  .book-half canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* page turn flap */
+  #flap {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform-origin: left center;
+    will-change: transform;
+    z-index: 20;
+    pointer-events: none;
+    display: none;
+  }
+
+  #flap-front, #flap-back {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    backface-visibility: hidden;
+    overflow: hidden;
+  }
+
+  #flap-front { transform: rotateY(0deg); }
+  #flap-back  { transform: rotateY(180deg); }
+
+  #flap-front canvas, #flap-back canvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+
+  /* curl shading on flap */
+  #flap-front::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(0,0,0,0.18) 0%, transparent 30%);
+    pointer-events: none;
+  }
+
+  /* page edge texture */
+  #page-edge {
+    position: absolute;
+    right: 0; top: 2%; height: 96%;
+    width: 6px;
+    background: linear-gradient(90deg, #e8e2d6, #d4ccbc, #c8c0ae);
+    z-index: 5;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* ── CONTROLS ── */
+  #controls {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 0 0;
+  }
+
+  .ctrl-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.15);
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+
+  .ctrl-btn:hover { background: rgba(255,255,255,0.95); transform: scale(1.06); }
+  .ctrl-btn:active { transform: scale(0.96); }
+  .ctrl-btn:disabled { opacity: 0.25; cursor: default; transform: none; }
+  .ctrl-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  #page-info {
+    font-size: 12px;
+    color: var(--text2);
+    min-width: 90px;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  /* dots */
+  #dots {
+    display: flex; gap: 5px; align-items: center;
+  }
+
+  .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.18);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .dot.on { background: var(--accent); transform: scale(1.35); }
+  .dot:hover { background: rgba(0,0,0,0.4); }
+
+  /* ── BOTTOM BAR ── */
+  #bottom-bar {
+    position: relative;
+    z-index: 5;
+    display: flex; align-items: center; gap: 16px;
+    padding-top: 8px;
+  }
+
+  .icon-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s;
+    color: var(--text2);
+  }
+  .icon-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); }
+  .icon-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  #change-btn {
+    font-size: 11px;
+    padding: 5px 14px;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.6);
+    cursor: pointer;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+  }
+  #change-btn:hover { background: rgba(255,255,255,0.95); color: var(--text); }
+
+  /* fullscreen hint */
+  #hint {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* page input */
+  #page-jump {
+    width: 44px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    padding: 2px 0;
+    outline: none;
+  }
+  #page-jump:focus { border-bottom-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- DROP ZONE -->
+<div id="drop-zone">
+  <div class="dz-card" id="dz-card" onclick="document.getElementById('file-input').click()">
+    <div class="dz-icon">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+    </div>
+    <h2 class="dz-title">Dépose ton PDF ici</h2>
+    <p class="dz-sub">Toutes les pages seront converties automatiquement en flipbook interactif</p>
+    <button class="dz-btn">Choisir un fichier</button>
+  </div>
+  <span class="dz-formats">Format PDF · Toutes tailles</span>
+  <input type="file" id="file-input" accept=".pdf,application/pdf">
+</div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--text2)">Chargement du PDF</div>
+  <div class="loader-bar-bg"><div class="loader-bar-fill" id="loader-bar"></div></div>
+  <div class="loader-text" id="loader-label">Préparation…</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="book-stage">
+    <div id="book">
+      <div id="left-half" class="book-half">
+        <canvas id="left-canvas"></canvas>
+      </div>
+      <div id="right-half" class="book-half">
+        <canvas id="right-canvas"></canvas>
+      </div>
+      <div id="flap">
+        <div id="flap-front"><canvas id="flap-front-canvas"></canvas></div>
+        <div id="flap-back"><canvas id="flap-back-canvas"></canvas></div>
+      </div>
+      <div id="spine"></div>
+      <div id="page-edge"></div>
+      <div id="book-shadow"></div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <button class="ctrl-btn" id="btn-first" title="Première page" onclick="goToSpread(0)">
+      <svg viewBox="0 0 24 24"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+    </button>
+    <button class="ctrl-btn" id="btn-prev" title="Page précédente" onclick="turnLeft()">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div id="dots"></div>
+    <button class="ctrl-btn" id="btn-next" title="Page suivante" onclick="turnRight()">
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <button class="ctrl-btn" id="btn-last" title="Dernière page" onclick="goToSpread(totalSpreads-1)">
+      <svg viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+    </button>
+  </div>
+
+  <div id="bottom-bar">
+    <div id="page-info"></div>
+    <input id="page-jump" type="number" min="1" title="Aller à la page" placeholder="nº">
+    <div class="icon-btn" title="Plein écran" onclick="toggleFullscreen()">
+      <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+    </div>
+    <button id="change-btn" onclick="resetApp()">← Changer de PDF</button>
+  </div>
+
+  <div id="hint">← → pour tourner les pages · Clic sur le livre</div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* ── STATE ── */
+let pdfDoc = null;
+let pages = [];          // array of ImageBitmap
+let totalPages = 0;
+let totalSpreads = 0;
+let currentSpread = 0;   // 0-based spread index
+let animating = false;
+const SCALE = 2;         // render resolution multiplier
+
+/* ── BOOK SIZING ── */
+let bookW, bookH, halfW;
+
+function computeBookSize() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const maxW = Math.min(vw * 0.9, 900);
+  const maxH = vh * 0.70;
+  // typical page aspect ~1.414 (A4)
+  // book is 2 pages wide → width:height = 2*1/1.414 ≈ 1.414
+  let w = maxW, h = w / 1.414;
+  if (h > maxH) { h = maxH; w = h * 1.414; }
+  bookW = Math.round(w);
+  bookH = Math.round(h);
+  halfW = Math.round(bookW / 2);
+}
+
+function applyBookSize() {
+  const book = document.getElementById('book');
+  book.style.width  = bookW + 'px';
+  book.style.height = bookH + 'px';
+  const flap = document.getElementById('flap');
+  flap.style.width  = halfW + 'px';
+  flap.style.height = bookH + 'px';
+}
+
+/* ── SPREAD HELPERS ── */
+// spread 0 → cover (page 1 only, right side)
+// spread 1 → pages 2-3, spread 2 → pages 4-5 …
+// last spread → last page on left (if even total)
+function spreadPages(s) {
+  if (s === 0) return { left: null, right: 1 };
+  const p = 2 + (s - 1) * 2;
+  return { left: p, right: p + 1 <= totalPages ? p + 1 : null };
+}
+
+/* ── RENDER HELPERS ── */
+async function renderPdfPageToCanvas(canvas, pageNum) {
+  if (!pageNum || pageNum < 1 || pageNum > totalPages) {
+    const ctx = canvas.getContext('2d');
+    canvas.width  = halfW * SCALE;
+    canvas.height = bookH * SCALE;
+    ctx.fillStyle = '#f5f0e8';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+  const page = pdfDoc ? await pdfDoc.getPage(pageNum) : null;
+  if (!page) return;
+  const vp = page.getViewport({ scale: 1 });
+  const scaleX = (halfW * SCALE) / vp.width;
+  const scaleY = (bookH * SCALE) / vp.height;
+  const scale  = Math.min(scaleX, scaleY);
+  const viewport = page.getViewport({ scale });
+  canvas.width  = halfW * SCALE;
+  canvas.height = bookH * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const offX = (canvas.width  - viewport.width)  / 2;
+  const offY = (canvas.height - viewport.height) / 2;
+  ctx.save();
+  ctx.translate(offX, offY);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  ctx.restore();
+}
+
+async function drawSpread(s) {
+  const { left, right } = spreadPages(s);
+  await Promise.all([
+    renderPdfPageToCanvas(document.getElementById('left-canvas'),  left),
+    renderPdfPageToCanvas(document.getElementById('right-canvas'), right)
+  ]);
+}
+
+/* ── PAGE TURN ANIMATION ── */
+async function turnRight() {
+  if (animating || currentSpread >= totalSpreads - 1) return;
+  animating = true;
+  const nextS = currentSpread + 1;
+  const nextPages = spreadPages(nextS);
+
+  // Flap shows: front = current right page, back = next left page
+  const flapEl = document.getElementById('flap');
+  flapEl.style.left = halfW + 'px';
+  flapEl.style.transformOrigin = 'left center';
+  flapEl.style.display = 'block';
+
+  const fc = document.getElementById('flap-front-canvas');
+  const bc = document.getElementById('flap-back-canvas');
+
+  const { right: currRight } = spreadPages(currentSpread);
+  await Promise.all([
+    renderPdfPageToCanvas(fc, currRight),
+    renderPdfPageToCanvas(bc, nextPages.left)
+  ]);
+
+  // Prepare right half with next right page (hidden behind flap)
+  await renderPdfPageToCanvas(document.getElementById('right-canvas'), nextPages.right);
+
+  // Animate
+  let start = null;
+  const dur = 650;
+  function step(ts) {
+    if (!start) start = ts;
+    const t = Math.min((ts - start) / dur, 1);
+    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+    const deg = -180 * ease;
+    flapEl.style.transform = `rotateY(${deg}deg)`;
+    // add curl shadow
+    const prog = Math.abs(deg) / 180;
+    const shadow = prog < 0.5
+      ? `inset -${prog*20}px 0 ${prog*30}px rgba(0,0,0,${prog*0.25})`
+      : `inset ${(1-prog)*20}px 0 ${(1-prog)*30}px rgba(0,0,0,${(1-prog)*0.25})`;
+    document.getElementById('left-half').style.boxShadow = shadow;
+    if (t < 1) requestAnimationFrame(step);
+    else finish();
+  }
+
+  async function finish() {
+    flapEl.style.display = 'none';
+    flapEl.style.transform = '';
+    document.getElementById('left-half').style.boxShadow = '';
+    currentSpread = nextS;
+    await renderPdfPageToCanvas(document.getElementById('left-canvas'), nextPages.left);
+    updateUI();
+    animating = false;
+  }
+
+  requestAnimationFrame(step);
+}
+
+async function turnLeft() {
+  if (animating || currentSpread <= 0) return;
+  animating = true;
+  const prevS = currentSpread - 1;
+  const prevPages = spreadPages(prevS);
+
+  const flapEl = document.getElementById('flap');
+  flapEl.style.left = '0px';
+  flapEl.style.transformOrigin = 'right center';
+  flapEl.style.display = 'block';
+
+  const fc = document.getElementById('flap-front-canvas');
+  const bc = document.getElementById('flap-back-canvas');
+
+  const { left: currLeft } = spreadPages(currentSpread);
+  await Promise.all([
+    renderPdfPageToCanvas(fc, currLeft),
+    renderPdfPageToCanvas(bc, prevPages.right)
+  ]);
+
+  flapEl.style.left = '0px';
+  flapEl.style.width = halfW + 'px';
+
+  // Prepare left half
+  await renderPdfPageToCanvas(document.getElementById('left-canvas'), prevPages.left);
+
+  let start = null;
+  const dur = 650;
+  function step(ts) {
+    if (!start) start = ts;
+    const t = Math.min((ts - start) / dur, 1);
+    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
+    const deg = 180 * ease;
+    flapEl.style.transform = `rotateY(${deg}deg)`;
+    if (t < 1) requestAnimationFrame(step);
+    else finish();
+  }
+
+  async function finish() {
+    flapEl.style.display = 'none';
+    flapEl.style.transform = '';
+    currentSpread = prevS;
+    await renderPdfPageToCanvas(document.getElementById('right-canvas'), prevPages.right);
+    updateUI();
+    animating = false;
+  }
+
+  requestAnimationFrame(step);
+}
+
+async function goToSpread(s) {
+  if (animating || s === currentSpread) return;
+  currentSpread = Math.max(0, Math.min(s, totalSpreads - 1));
+  await drawSpread(currentSpread);
+  updateUI();
+}
+
+/* ── UI UPDATE ── */
+function updateUI() {
+  const { left, right } = spreadPages(currentSpread);
+  const leftStr  = left  ? left  : '—';
+  const rightStr = right ? right : '—';
+  document.getElementById('page-info').textContent = `${leftStr}${right ? '–' + rightStr : ''} / ${totalPages}`;
+  document.getElementById('btn-prev').disabled  = currentSpread === 0;
+  document.getElementById('btn-first').disabled = currentSpread === 0;
+  document.getElementById('btn-next').disabled  = currentSpread === totalSpreads - 1;
+  document.getElementById('btn-last').disabled  = currentSpread === totalSpreads - 1;
+
+  // dots (max 12 shown)
+  const dotsEl = document.getElementById('dots');
+  const show = Math.min(totalSpreads, 12);
+  let html = '';
+  for (let i = 0; i < show; i++) {
+    const si = Math.round(i * (totalSpreads - 1) / Math.max(show - 1, 1));
+    const on = si === currentSpread ? ' on' : '';
+    html += `<div class="dot${on}" onclick="goToSpread(${si})"></div>`;
+  }
+  dotsEl.innerHTML = html;
+}
+
+/* ── PDF LOADING ── */
+async function loadPDF(file) {
+  document.getElementById('drop-zone').classList.add('hidden');
+  document.getElementById('loader').classList.add('visible');
+
+  const bar   = document.getElementById('loader-bar');
+  const label = document.getElementById('loader-label');
+
+  const arrayBuffer = await file.arrayBuffer();
+  label.textContent = 'Lecture du fichier…';
+  bar.style.width = '15%';
+
+  pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  totalPages   = pdfDoc.numPages;
+  // spreads: spread 0 = cover (right only), then pairs
+  totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
+
+  label.textContent = 'Rendu des pages…';
+  computeBookSize();
+  applyBookSize();
+
+  currentSpread = 0;
+  bar.style.width = '40%';
+  await drawSpread(0);
+  bar.style.width = '90%';
+
+  label.textContent = 'Finalisation…';
+  await new Promise(r => setTimeout(r, 200));
+  bar.style.width = '100%';
+
+  await new Promise(r => setTimeout(r, 300));
+  document.getElementById('loader').classList.remove('visible');
+  document.getElementById('app').classList.add('visible');
+  updateUI();
+}
+
+/* ── EVENTS ── */
+const fileInput = document.getElementById('file-input');
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadPDF(e.target.files[0]);
+});
+
+const dzCard = document.getElementById('dz-card');
+dzCard.addEventListener('dragover', e => { e.preventDefault(); dzCard.classList.add('drag-over'); });
+dzCard.addEventListener('dragleave', () => dzCard.classList.remove('drag-over'));
+dzCard.addEventListener('drop', e => {
+  e.preventDefault();
+  dzCard.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type === 'application/pdf') loadPDF(f);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') turnRight();
+  if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   turnLeft();
+  if (e.key === 'Home') goToSpread(0);
+  if (e.key === 'End')  goToSpread(totalSpreads - 1);
+});
+
+// Click left/right half of book to turn
+document.getElementById('left-half').addEventListener('click', () => turnLeft());
+document.getElementById('right-half').addEventListener('click', () => turnRight());
+
+// Page jump input
+document.getElementById('page-jump').addEventListener('change', e => {
+  const p = parseInt(e.target.value);
+  if (!p || p < 1 || p > totalPages) return;
+  // find spread for this page
+  let s;
+  if (p === 1) s = 0;
+  else s = 1 + Math.floor((p - 2) / 2);
+  goToSpread(s);
+  e.target.value = '';
+});
+
+window.addEventListener('resize', async () => {
+  computeBookSize();
+  applyBookSize();
+  if (pdfDoc) await drawSpread(currentSpread);
+});
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  else document.exitFullscreen().catch(() => {});
+}
+
+function resetApp() {
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('drop-zone').classList.remove('hidden');
+  document.getElementById('loader-bar').style.width = '0%';
+  pdfDoc = null;
+  pages = [];
+  document.getElementById('file-input').value = '';
+}
+</script>
+</body>
+</html>
