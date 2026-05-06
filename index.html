@@ -689,6 +689,11 @@ async function loadPDF(file) {
   await new Promise(r => setTimeout(r, 300));
   document.getElementById('loader').classList.remove('visible');
   document.getElementById('app').classList.add('visible');
+  // Re-render après que l'app est visible et le DOM a ses vraies dimensions
+  await new Promise(r => requestAnimationFrame(r));
+  computeBookSize();
+  applyBookSize();
+  await drawSpread(0);
   updateUI();
 }
 
