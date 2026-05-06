@@ -6,27 +6,27 @@
 <title>Flipbook</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300;400;500&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f4f1eb;
-    --bg2: #ede9e0;
+    --bg: #0C1212;
+    --bg2: #111919;
     --surface: #ffffff;
-    --text: #1a1410;
-    --text2: #6a5e52;
-    --text3: #b0a090;
-    --accent: #c8a96e;
-    --spine: #1a1410;
-    --border: rgba(0,0,0,0.1);
-    --shadow-book: 0 30px 80px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.12);
+    --text: #F3F3F3;
+    --text2: #aaaaaa;
+    --text3: #555555;
+    --accent: #F3F3F3;
+    --spine: #050909;
+    --border: rgba(255,255,255,0.12);
+    --shadow-book: 0 30px 80px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5);
   }
 
   html, body {
     width: 100%; height: 100%;
     background: var(--bg);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Google Sans Code', monospace;
     color: var(--text);
     overflow: hidden;
   }
@@ -96,7 +96,7 @@
     font-weight: 500;
     cursor: pointer;
     border: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Google Sans Code', monospace;
     transition: background 0.2s;
   }
 
@@ -173,7 +173,7 @@
   #book-stage {
     position: relative;
     z-index: 1;
-    perspective: 2400px;
+    perspective: 1400px;
     flex-shrink: 0;
   }
 
@@ -189,20 +189,24 @@
     bottom: -20px; left: 50%;
     transform: translateX(-50%);
     width: 88%; height: 28px;
-    background: radial-gradient(ellipse, rgba(0,0,0,0.28) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(0,0,0,0.55) 0%, transparent 68%);
     border-radius: 50%;
     pointer-events: none;
   }
 
-  /* Spine */
-  #spine {
+  /* Spine — dans #book-stage, hors du contexte preserve-3d */
+  #spine-overlay {
     position: absolute;
-    left: 50%; top: 0;
+    left: 50%;
+    top: 0;
+    bottom: 0;
     transform: translateX(-50%);
-    width: 12px; height: 100%;
-    background: linear-gradient(90deg, #0e0e0e 0%, #2a2a2a 40%, #3a3a3a 60%, #0e0e0e 100%);
-    z-index: 15;
+    width: 4px;
+    background: #060e0e;
+    z-index: 50;
+    pointer-events: none;
   }
+  #spine { display: none; }
 
   /* ── PAGES ── */
   .book-half {
@@ -213,8 +217,8 @@
     overflow: hidden;
   }
 
-  #left-half  { left: 0;   box-shadow: inset -6px 0 18px rgba(0,0,0,0.12); }
-  #right-half { right: 0;  box-shadow: inset  6px 0 18px rgba(0,0,0,0.12); }
+  #left-half  { left: 0;   box-shadow: inset -12px 0 32px rgba(0,0,0,0.35); }
+  #right-half { right: 0;  box-shadow: inset  12px 0 32px rgba(0,0,0,0.35); }
 
   .book-half canvas {
     position: absolute;
@@ -263,15 +267,7 @@
     pointer-events: none;
   }
 
-  /* page edge texture */
-  #page-edge {
-    position: absolute;
-    right: 0; top: 2%; height: 96%;
-    width: 6px;
-    background: linear-gradient(90deg, #e8e2d6, #d4ccbc, #c8c0ae);
-    z-index: 5;
-    border-radius: 0 2px 2px 0;
-  }
+  #page-edge { display: none; }
 
   /* ── CONTROLS ── */
   #controls {
@@ -286,26 +282,26 @@
   .ctrl-btn {
     width: 36px; height: 36px;
     border-radius: 50%;
-    border: 1px solid rgba(0,0,0,0.15);
-    background: rgba(255,255,255,0.7);
-    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
-    color: var(--text);
+    color: #F3F3F3;
   }
 
-  .ctrl-btn:hover { background: rgba(255,255,255,0.95); transform: scale(1.06); }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.14); transform: scale(1.06); }
   .ctrl-btn:active { transform: scale(0.96); }
-  .ctrl-btn:disabled { opacity: 0.25; cursor: default; transform: none; }
+  .ctrl-btn:disabled { opacity: 0.2; cursor: default; transform: none; }
   .ctrl-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   #page-info {
-    font-size: 12px;
-    color: var(--text2);
-    min-width: 90px;
+    font-size: 13px;
+    color: #F3F3F3;
+    min-width: 80px;
     text-align: center;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+    font-weight: 400;
   }
 
   /* dots */
@@ -351,7 +347,7 @@
     background: rgba(255,255,255,0.6);
     cursor: pointer;
     color: var(--text2);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Google Sans Code', monospace;
     transition: all 0.2s;
     letter-spacing: 0.03em;
   }
@@ -374,7 +370,7 @@
     border-bottom: 1px solid var(--border);
     text-align: center;
     font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Google Sans Code', monospace;
     color: var(--text);
     padding: 2px 0;
     outline: none;
@@ -419,38 +415,21 @@
         <div id="flap-front"><canvas id="flap-front-canvas"></canvas></div>
         <div id="flap-back"><canvas id="flap-back-canvas"></canvas></div>
       </div>
-      <div id="spine"></div>
       <div id="page-edge"></div>
       <div id="book-shadow"></div>
     </div>
+    <div id="spine-overlay"></div>
   </div>
 
   <div id="controls">
-    <button class="ctrl-btn" id="btn-first" title="Première page" onclick="goToSpread(0)">
-      <svg viewBox="0 0 24 24"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
-    </button>
     <button class="ctrl-btn" id="btn-prev" title="Page précédente" onclick="turnLeft()">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <div id="dots"></div>
+    <div id="page-info"></div>
     <button class="ctrl-btn" id="btn-next" title="Page suivante" onclick="turnRight()">
       <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
-    <button class="ctrl-btn" id="btn-last" title="Dernière page" onclick="goToSpread(totalSpreads-1)">
-      <svg viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
-    </button>
   </div>
-
-  <div id="bottom-bar">
-    <div id="page-info"></div>
-    <input id="page-jump" type="number" min="1" title="Aller à la page" placeholder="nº">
-    <div class="icon-btn" title="Plein écran" onclick="toggleFullscreen()">
-      <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-    </div>
-    <button id="change-btn" onclick="resetApp()">← Changer de PDF</button>
-  </div>
-
-  <div id="hint">← → pour tourner les pages · Clic sur le livre</div>
 </div>
 
 <script>
@@ -489,6 +468,10 @@ function applyBookSize() {
   const flap = document.getElementById('flap');
   flap.style.width  = halfW + 'px';
   flap.style.height = bookH + 'px';
+  // Spine hors du preserve-3d : on fixe sa hauteur exacte
+  const spine = document.getElementById('spine-overlay');
+  spine.style.height = bookH + 'px';
+  spine.style.top    = '0px';
 }
 
 /* ── SPREAD HELPERS ── */
@@ -507,7 +490,7 @@ async function renderPdfPageToCanvas(canvas, pageNum) {
     const ctx = canvas.getContext('2d');
     canvas.width  = halfW * SCALE;
     canvas.height = bookH * SCALE;
-    ctx.fillStyle = '#f5f0e8';
+    ctx.fillStyle = '#0C1212';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     return;
   }
@@ -546,11 +529,10 @@ async function turnRight() {
   const nextS = currentSpread + 1;
   const nextPages = spreadPages(nextS);
 
-  // Flap shows: front = current right page, back = next left page
   const flapEl = document.getElementById('flap');
   flapEl.style.left = halfW + 'px';
   flapEl.style.transformOrigin = 'left center';
-  flapEl.style.display = 'block';
+  flapEl.style.display = 'none'; // caché pendant le render
 
   const fc = document.getElementById('flap-front-canvas');
   const bc = document.getElementById('flap-back-canvas');
@@ -561,10 +543,9 @@ async function turnRight() {
     renderPdfPageToCanvas(bc, nextPages.left)
   ]);
 
-  // Prepare right half with next right page (hidden behind flap)
   await renderPdfPageToCanvas(document.getElementById('right-canvas'), nextPages.right);
+  flapEl.style.display = 'block'; // prêt → on affiche
 
-  // Animate
   let start = null;
   const dur = 650;
   function step(ts) {
@@ -573,7 +554,6 @@ async function turnRight() {
     const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
     const deg = -180 * ease;
     flapEl.style.transform = `rotateY(${deg}deg)`;
-    // add curl shadow
     const prog = Math.abs(deg) / 180;
     const shadow = prog < 0.5
       ? `inset -${prog*20}px 0 ${prog*30}px rgba(0,0,0,${prog*0.25})`
@@ -584,11 +564,12 @@ async function turnRight() {
   }
 
   async function finish() {
+    // Pré-render AVANT de cacher le flap → zéro flash
+    await renderPdfPageToCanvas(document.getElementById('left-canvas'), nextPages.left);
     flapEl.style.display = 'none';
     flapEl.style.transform = '';
-    document.getElementById('left-half').style.boxShadow = '';
+    document.getElementById('left-half').style.boxShadow = 'inset -12px 0 32px rgba(0,0,0,0.35)';
     currentSpread = nextS;
-    await renderPdfPageToCanvas(document.getElementById('left-canvas'), nextPages.left);
     updateUI();
     animating = false;
   }
@@ -605,7 +586,7 @@ async function turnLeft() {
   const flapEl = document.getElementById('flap');
   flapEl.style.left = '0px';
   flapEl.style.transformOrigin = 'right center';
-  flapEl.style.display = 'block';
+  flapEl.style.display = 'none'; // caché pendant le render
 
   const fc = document.getElementById('flap-front-canvas');
   const bc = document.getElementById('flap-back-canvas');
@@ -616,11 +597,10 @@ async function turnLeft() {
     renderPdfPageToCanvas(bc, prevPages.right)
   ]);
 
-  flapEl.style.left = '0px';
   flapEl.style.width = halfW + 'px';
 
-  // Prepare left half
   await renderPdfPageToCanvas(document.getElementById('left-canvas'), prevPages.left);
+  flapEl.style.display = 'block'; // prêt → on affiche
 
   let start = null;
   const dur = 650;
@@ -630,15 +610,22 @@ async function turnLeft() {
     const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
     const deg = 180 * ease;
     flapEl.style.transform = `rotateY(${deg}deg)`;
+    const prog = Math.abs(deg) / 180;
+    const shadow = prog < 0.5
+      ? `inset ${prog*20}px 0 ${prog*30}px rgba(0,0,0,${prog*0.25})`
+      : `inset -${(1-prog)*20}px 0 ${(1-prog)*30}px rgba(0,0,0,${(1-prog)*0.25})`;
+    document.getElementById('right-half').style.boxShadow = shadow;
     if (t < 1) requestAnimationFrame(step);
     else finish();
   }
 
   async function finish() {
+    // Pré-render AVANT de cacher le flap → zéro flash
+    await renderPdfPageToCanvas(document.getElementById('right-canvas'), prevPages.right);
     flapEl.style.display = 'none';
     flapEl.style.transform = '';
+    document.getElementById('right-half').style.boxShadow = 'inset 12px 0 32px rgba(0,0,0,0.35)';
     currentSpread = prevS;
-    await renderPdfPageToCanvas(document.getElementById('right-canvas'), prevPages.right);
     updateUI();
     animating = false;
   }
@@ -658,22 +645,9 @@ function updateUI() {
   const { left, right } = spreadPages(currentSpread);
   const leftStr  = left  ? left  : '—';
   const rightStr = right ? right : '—';
-  document.getElementById('page-info').textContent = `${leftStr}${right ? '–' + rightStr : ''} / ${totalPages}`;
-  document.getElementById('btn-prev').disabled  = currentSpread === 0;
-  document.getElementById('btn-first').disabled = currentSpread === 0;
-  document.getElementById('btn-next').disabled  = currentSpread === totalSpreads - 1;
-  document.getElementById('btn-last').disabled  = currentSpread === totalSpreads - 1;
-
-  // dots (max 12 shown)
-  const dotsEl = document.getElementById('dots');
-  const show = Math.min(totalSpreads, 12);
-  let html = '';
-  for (let i = 0; i < show; i++) {
-    const si = Math.round(i * (totalSpreads - 1) / Math.max(show - 1, 1));
-    const on = si === currentSpread ? ' on' : '';
-    html += `<div class="dot${on}" onclick="goToSpread(${si})"></div>`;
-  }
-  dotsEl.innerHTML = html;
+  document.getElementById('page-info').textContent = `${leftStr}${right ? ' – ' + rightStr : ''} / ${totalPages}`;
+  document.getElementById('btn-prev').disabled = currentSpread === 0;
+  document.getElementById('btn-next').disabled = currentSpread === totalSpreads - 1;
 }
 
 /* ── PDF LOADING ── */
