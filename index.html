@@ -758,18 +758,21 @@ async function loadPDFFromUrl(url) {
 
   const bar   = document.getElementById('loader-bar');
   const label = document.getElementById('loader-label');
-  label.textContent = 'Téléchargement…';
+  label.textContent = 'Chargement…';
   bar.style.width = '10%';
 
   try {
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error('Impossible de charger le PDF');
-    const arrayBuffer = await response.arrayBuffer();
-    bar.style.width = '30%';
     label.textContent = 'Lecture du fichier…';
-
-    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    // PDF.js charge directement l'URL (pas de fetch intermédiaire)
+    const loadingTask = pdfjsLib.getDocument({
+      url: url,
+      withCredentials: false,
+    });
+    loadingTask.onProgress = (p) => {
+      if (p.total) bar.style.width = (10 + 60 * p.loaded / p.total) + '%';
+    };
+    bar.style.width = '30%';
+    pdfDoc = await loadingTask.promise;
     totalPages   = pdfDoc.numPages;
     totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
 
