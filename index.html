@@ -770,6 +770,59 @@ function resetApp() {
   pages = [];
   document.getElementById('file-input').value = '';
 }
+
+/* ── CHARGEMENT DEPUIS URL ?pdf=... ── */
+async function loadPDFFromUrl(url) {
+  document.getElementById('drop-zone').classList.add('hidden');
+  document.getElementById('loader').classList.add('visible');
+
+  const bar   = document.getElementById('loader-bar');
+  const label = document.getElementById('loader-label');
+  label.textContent = 'Téléchargement…';
+  bar.style.width = '10%';
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Impossible de charger le PDF');
+    const arrayBuffer = await response.arrayBuffer();
+    bar.style.width = '30%';
+    label.textContent = 'Lecture du fichier…';
+
+    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    totalPages   = pdfDoc.numPages;
+    totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
+
+    label.textContent = 'Rendu des pages…';
+    computeBookSize();
+    applyBookSize();
+    currentSpread = 0;
+    bar.style.width = '70%';
+    await drawSpread(0);
+    bar.style.width = '100%';
+
+    await new Promise(r => setTimeout(r, 300));
+    document.getElementById('loader').classList.remove('visible');
+    document.getElementById('app').classList.add('visible');
+
+    // Cacher le bouton "Changer de PDF" si chargé via URL
+    document.getElementById('change-btn').style.display = 'none';
+    updateUI();
+  } catch (err) {
+    label.textContent = 'Erreur : ' + err.message;
+    bar.style.width = '0%';
+    setTimeout(() => {
+      document.getElementById('loader').classList.remove('visible');
+      document.getElementById('drop-zone').classList.remove('hidden');
+    }, 2500);
+  }
+}
+
+// Au chargement, vérifier si ?pdf= est dans l'URL
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const pdfUrl = params.get('pdf');
+  if (pdfUrl) loadPDFFromUrl(decodeURIComponent(pdfUrl));
+})();
 </script>
 </body>
 </html>
