@@ -29,6 +29,7 @@
     font-family: 'Google Sans Code', monospace;
     color: var(--text);
     overflow: hidden;
+    touch-action: pan-y;
   }
 
   /* ── DROP ZONE ── */
@@ -174,12 +175,14 @@
     position: relative;
     z-index: 1;
     perspective: 1400px;
+    -webkit-perspective: 1400px;
     flex-shrink: 0;
   }
 
   #book {
     position: relative;
     transform-style: preserve-3d;
+    transform: rotateX(2deg);
     /* size set by JS */
   }
 
@@ -194,17 +197,18 @@
     pointer-events: none;
   }
 
-  /* Spine — dans #book-stage, hors du contexte preserve-3d */
+  /* Spine — overlay fixe hors du book, largeur constante */
   #spine-overlay {
     position: absolute;
     left: 50%;
     top: 0;
-    bottom: 0;
     transform: translateX(-50%);
     width: 4px;
+    height: 100%;
     background: #060e0e;
-    z-index: 50;
+    z-index: 40;
     pointer-events: none;
+    border-radius: 1px;
   }
   #spine { display: none; }
 
@@ -234,7 +238,9 @@
     top: 0;
     height: 100%;
     transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
     transform-origin: left center;
+    -webkit-transform-origin: left center;
     will-change: transform;
     z-index: 20;
     pointer-events: none;
@@ -246,6 +252,7 @@
     top: 0; left: 0;
     width: 100%; height: 100%;
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     overflow: hidden;
   }
 
@@ -468,10 +475,6 @@ function applyBookSize() {
   const flap = document.getElementById('flap');
   flap.style.width  = halfW + 'px';
   flap.style.height = bookH + 'px';
-  // Spine hors du preserve-3d : on fixe sa hauteur exacte
-  const spine = document.getElementById('spine-overlay');
-  spine.style.height = bookH + 'px';
-  spine.style.top    = '0px';
 }
 
 /* ── SPREAD HELPERS ── */
@@ -501,24 +504,17 @@ async function renderPdfPageToCanvas(canvas, pageNum) {
   const scaleY = (bookH * SCALE) / vp.height;
   const scale  = Math.min(scaleX, scaleY);
   const viewport = page.getViewport({ scale });
-  // Dessiner sur un canvas offscreen puis copier d'un coup → zéro flash
-  const oc = document.createElement('canvas');
-  oc.width  = halfW * SCALE;
-  oc.height = bookH * SCALE;
-  const ctx = oc.getContext('2d');
+  canvas.width  = halfW * SCALE;
+  canvas.height = bookH * SCALE;
+  const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, oc.width, oc.height);
-  // Centrage basé sur oc (offscreen), pas sur canvas (pas encore redimensionné)
-  const offX = (oc.width  - viewport.width)  / 2;
-  const offY = (oc.height - viewport.height) / 2;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const offX = (canvas.width  - viewport.width)  / 2;
+  const offY = (canvas.height - viewport.height) / 2;
   ctx.save();
   ctx.translate(offX, offY);
   await page.render({ canvasContext: ctx, viewport }).promise;
   ctx.restore();
-  // Copie atomique offscreen → canvas visible
-  canvas.width  = halfW * SCALE;
-  canvas.height = bookH * SCALE;
-  canvas.getContext('2d').drawImage(oc, 0, 0);
 }
 
 async function drawSpread(s) {
@@ -530,6 +526,29 @@ async function drawSpread(s) {
 }
 
 /* ── PAGE TURN ANIMATION ── */
+// ease : cubic in-out
+function easeInOut(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+
+// Applique la courbure de page via skewY + scaleX simulant un arc
+function applyPageCurl(el, progress, direction) {
+  // progress 0→1 (0=plat, 0.5=à 90°, 1=plat de l'autre côté)
+  const deg = direction === 'right' ? -180 * progress : 180 * progress;
+  // courbure max au milieu (sin donne une cloche)
+  const curl = Math.sin(progress * Math.PI) * 6;
+  const scaleY = 1 - Math.sin(progress * Math.PI) * 0.04;
+  el.style.transform = `rotateY(${deg}deg) skewY(${curl * (direction === 'right' ? 1 : -1)}deg) scaleY(${scaleY})`;
+}
+
+// Ombre dynamique sur la page révélée
+function applyRevealShadow(el, progress, side) {
+  const intensity = Math.sin(progress * Math.PI);
+  if (side === 'left') {
+    el.style.boxShadow = `inset -${intensity*28}px 0 ${intensity*50}px rgba(0,0,0,${intensity*0.45}), inset -12px 0 32px rgba(0,0,0,0.35)`;
+  } else {
+    el.style.boxShadow = `inset ${intensity*28}px 0 ${intensity*50}px rgba(0,0,0,${intensity*0.45}), inset 12px 0 32px rgba(0,0,0,0.35)`;
+  }
+}
+
 async function turnRight() {
   if (animating || currentSpread >= totalSpreads - 1) return;
   animating = true;
@@ -538,45 +557,40 @@ async function turnRight() {
 
   const flapEl = document.getElementById('flap');
   flapEl.style.left = halfW + 'px';
+  flapEl.style.width = halfW + 'px';
   flapEl.style.transformOrigin = 'left center';
-  flapEl.style.display = 'none'; // caché pendant le render
+  flapEl.style.display = 'block';
 
   const fc = document.getElementById('flap-front-canvas');
   const bc = document.getElementById('flap-back-canvas');
-
   const { right: currRight } = spreadPages(currentSpread);
+
   await Promise.all([
     renderPdfPageToCanvas(fc, currRight),
     renderPdfPageToCanvas(bc, nextPages.left)
   ]);
-
   await renderPdfPageToCanvas(document.getElementById('right-canvas'), nextPages.right);
-  flapEl.style.display = 'block'; // prêt → on affiche
 
+  const leftHalf = document.getElementById('left-half');
+  const dur = 800;
   let start = null;
-  const dur = 650;
+
   function step(ts) {
     if (!start) start = ts;
     const t = Math.min((ts - start) / dur, 1);
-    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
-    const deg = -180 * ease;
-    flapEl.style.transform = `rotateY(${deg}deg)`;
-    const prog = Math.abs(deg) / 180;
-    const shadow = prog < 0.5
-      ? `inset -${prog*20}px 0 ${prog*30}px rgba(0,0,0,${prog*0.25})`
-      : `inset ${(1-prog)*20}px 0 ${(1-prog)*30}px rgba(0,0,0,${(1-prog)*0.25})`;
-    document.getElementById('left-half').style.boxShadow = shadow;
+    const progress = easeInOut(t);
+    applyPageCurl(flapEl, progress, 'right');
+    applyRevealShadow(leftHalf, progress, 'left');
     if (t < 1) requestAnimationFrame(step);
     else finish();
   }
 
   async function finish() {
-    // Pré-render AVANT de cacher le flap → zéro flash
-    await renderPdfPageToCanvas(document.getElementById('left-canvas'), nextPages.left);
     flapEl.style.display = 'none';
     flapEl.style.transform = '';
-    document.getElementById('left-half').style.boxShadow = 'inset -12px 0 32px rgba(0,0,0,0.35)';
+    leftHalf.style.boxShadow = 'inset -12px 0 32px rgba(0,0,0,0.35)';
     currentSpread = nextS;
+    await renderPdfPageToCanvas(document.getElementById('left-canvas'), nextPages.left);
     updateUI();
     animating = false;
   }
@@ -592,47 +606,40 @@ async function turnLeft() {
 
   const flapEl = document.getElementById('flap');
   flapEl.style.left = '0px';
+  flapEl.style.width = halfW + 'px';
   flapEl.style.transformOrigin = 'right center';
-  flapEl.style.display = 'none'; // caché pendant le render
+  flapEl.style.display = 'block';
 
   const fc = document.getElementById('flap-front-canvas');
   const bc = document.getElementById('flap-back-canvas');
-
   const { left: currLeft } = spreadPages(currentSpread);
+
   await Promise.all([
     renderPdfPageToCanvas(fc, currLeft),
     renderPdfPageToCanvas(bc, prevPages.right)
   ]);
-
-  flapEl.style.width = halfW + 'px';
-
   await renderPdfPageToCanvas(document.getElementById('left-canvas'), prevPages.left);
-  flapEl.style.display = 'block'; // prêt → on affiche
 
+  const rightHalf = document.getElementById('right-half');
+  const dur = 800;
   let start = null;
-  const dur = 650;
+
   function step(ts) {
     if (!start) start = ts;
     const t = Math.min((ts - start) / dur, 1);
-    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
-    const deg = 180 * ease;
-    flapEl.style.transform = `rotateY(${deg}deg)`;
-    const prog = Math.abs(deg) / 180;
-    const shadow = prog < 0.5
-      ? `inset ${prog*20}px 0 ${prog*30}px rgba(0,0,0,${prog*0.25})`
-      : `inset -${(1-prog)*20}px 0 ${(1-prog)*30}px rgba(0,0,0,${(1-prog)*0.25})`;
-    document.getElementById('right-half').style.boxShadow = shadow;
+    const progress = easeInOut(t);
+    applyPageCurl(flapEl, progress, 'left');
+    applyRevealShadow(rightHalf, progress, 'right');
     if (t < 1) requestAnimationFrame(step);
     else finish();
   }
 
   async function finish() {
-    // Pré-render AVANT de cacher le flap → zéro flash
-    await renderPdfPageToCanvas(document.getElementById('right-canvas'), prevPages.right);
     flapEl.style.display = 'none';
     flapEl.style.transform = '';
-    document.getElementById('right-half').style.boxShadow = 'inset 12px 0 32px rgba(0,0,0,0.35)';
+    rightHalf.style.boxShadow = 'inset 12px 0 32px rgba(0,0,0,0.35)';
     currentSpread = prevS;
+    await renderPdfPageToCanvas(document.getElementById('right-canvas'), prevPages.right);
     updateUI();
     animating = false;
   }
@@ -690,25 +697,10 @@ async function loadPDF(file) {
   await new Promise(r => setTimeout(r, 300));
   document.getElementById('loader').classList.remove('visible');
   document.getElementById('app').classList.add('visible');
-  // Attendre que #book-stage ait ses vraies dimensions via ResizeObserver
-  await new Promise(r => {
-    const stage = document.getElementById('book-stage');
-    const ro = new ResizeObserver(async (entries) => {
-      if (entries[0].contentRect.width > 0) {
-        ro.disconnect();
-        computeBookSize();
-        applyBookSize();
-        await drawSpread(0);
-        updateUI();
-        r();
-      }
-    });
-    ro.observe(stage);
-  });
+  updateUI();
 }
 
 /* ── EVENTS ── */
-document.addEventListener('DOMContentLoaded', function() {
 const fileInput = document.getElementById('file-input');
 fileInput.addEventListener('change', e => {
   if (e.target.files[0]) loadPDF(e.target.files[0]);
@@ -735,6 +727,17 @@ document.addEventListener('keydown', e => {
 document.getElementById('left-half').addEventListener('click', () => turnLeft());
 document.getElementById('right-half').addEventListener('click', () => turnRight());
 
+// Page jump input
+document.getElementById('page-jump').addEventListener('change', e => {
+  const p = parseInt(e.target.value);
+  if (!p || p < 1 || p > totalPages) return;
+  // find spread for this page
+  let s;
+  if (p === 1) s = 0;
+  else s = 1 + Math.floor((p - 2) / 2);
+  goToSpread(s);
+  e.target.value = '';
+});
 
 window.addEventListener('resize', async () => {
   computeBookSize();
@@ -742,6 +745,10 @@ window.addEventListener('resize', async () => {
   if (pdfDoc) await drawSpread(currentSpread);
 });
 
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  else document.exitFullscreen().catch(() => {});
+}
 
 function resetApp() {
   document.getElementById('app').classList.remove('visible');
@@ -759,21 +766,17 @@ async function loadPDFFromUrl(url) {
 
   const bar   = document.getElementById('loader-bar');
   const label = document.getElementById('loader-label');
-  label.textContent = 'Chargement…';
+  label.textContent = 'Téléchargement…';
   bar.style.width = '10%';
 
   try {
-    label.textContent = 'Lecture du fichier…';
-    // PDF.js charge directement l'URL (pas de fetch intermédiaire)
-    const loadingTask = pdfjsLib.getDocument({
-      url: url,
-      withCredentials: false,
-    });
-    loadingTask.onProgress = (p) => {
-      if (p.total) bar.style.width = (10 + 60 * p.loaded / p.total) + '%';
-    };
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Impossible de charger le PDF');
+    const arrayBuffer = await response.arrayBuffer();
     bar.style.width = '30%';
-    pdfDoc = await loadingTask.promise;
+    label.textContent = 'Lecture du fichier…';
+
+    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     totalPages   = pdfDoc.numPages;
     totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
 
@@ -789,6 +792,8 @@ async function loadPDFFromUrl(url) {
     document.getElementById('loader').classList.remove('visible');
     document.getElementById('app').classList.add('visible');
 
+    // Cacher le bouton "Changer de PDF" si chargé via URL
+    document.getElementById('change-btn').style.display = 'none';
     updateUI();
   } catch (err) {
     label.textContent = 'Erreur : ' + err.message;
@@ -800,13 +805,47 @@ async function loadPDFFromUrl(url) {
   }
 }
 
+
+/* ── SWIPE TACTILE (iPhone / iPad) ── */
+let _tx0 = 0, _ty0 = 0, _moved = false;
+const _stage = document.getElementById('book-stage');
+
+_stage.addEventListener('touchstart', e => {
+  _tx0 = e.touches[0].clientX;
+  _ty0 = e.touches[0].clientY;
+  _moved = false;
+}, { passive: true });
+
+_stage.addEventListener('touchmove', e => {
+  const dx = Math.abs(e.touches[0].clientX - _tx0);
+  const dy = Math.abs(e.touches[0].clientY - _ty0);
+  if (dx > 8 || dy > 8) _moved = true;
+  if (dx > dy) e.preventDefault(); // bloque le scroll si swipe horizontal
+}, { passive: false });
+
+_stage.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - _tx0;
+  const dy = e.changedTouches[0].clientY - _ty0;
+  const absDx = Math.abs(dx), absDy = Math.abs(dy);
+  if (absDx > 40 && absDx > absDy * 1.5) {
+    // Swipe horizontal → tourner
+    if (dx < 0) turnRight();
+    else         turnLeft();
+  } else if (!_moved) {
+    // Tap → moitié gauche = reculer, droite = avancer
+    const rect = _stage.getBoundingClientRect();
+    const tapX = e.changedTouches[0].clientX - rect.left;
+    if (tapX < bookW / 2) turnLeft();
+    else                   turnRight();
+  }
+}, { passive: true });
+
 // Au chargement, vérifier si ?pdf= est dans l'URL
 (function() {
   const params = new URLSearchParams(window.location.search);
   const pdfUrl = params.get('pdf');
   if (pdfUrl) loadPDFFromUrl(decodeURIComponent(pdfUrl));
 })();
-}); // DOMContentLoaded
 </script>
 </body>
 </html>
