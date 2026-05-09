@@ -12,15 +12,11 @@
 
   :root {
     --bg: #0C1212;
-    --bg2: #111919;
-    --surface: #ffffff;
     --text: #F3F3F3;
     --text2: #aaaaaa;
     --text3: #555555;
     --accent: #F3F3F3;
-    --spine: #050909;
     --border: rgba(255,255,255,0.12);
-    --shadow-book: 0 30px 80px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5);
   }
 
   html, body {
@@ -29,87 +25,61 @@
     font-family: 'Google Sans Code', monospace;
     color: var(--text);
     overflow: hidden;
+    /* Empêche le scroll/zoom sur mobile pendant les swipes */
+    touch-action: manipulation;
   }
 
   /* ── DROP ZONE ── */
   #drop-zone {
     position: fixed; inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
     gap: 20px;
     background: var(--bg);
     z-index: 100;
     transition: opacity 0.5s, visibility 0.5s;
+    padding: 20px;
   }
-
   #drop-zone.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
   .dz-card {
-    width: 340px;
+    width: 100%; max-width: 340px;
     border: 1.5px dashed var(--accent);
     border-radius: 12px;
-    padding: 48px 32px;
+    padding: 40px 28px;
     text-align: center;
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
-    background: transparent;
+    transition: background 0.2s;
   }
-
-  .dz-card:hover, .dz-card.drag-over {
-    background: rgba(200,169,110,0.06);
-    border-color: #a88848;
-  }
+  .dz-card:hover { background: rgba(243,243,243,0.04); }
 
   .dz-icon {
     width: 56px; height: 56px;
     margin: 0 auto 20px;
-    background: rgba(200,169,110,0.12);
+    background: rgba(243,243,243,0.08);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
   }
-
   .dz-icon svg { width: 26px; height: 26px; stroke: var(--accent); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
-  .dz-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 20px;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-
-  .dz-sub {
-    font-size: 13px;
-    color: var(--text2);
-    line-height: 1.6;
-  }
+  .dz-title { font-size: 18px; color: var(--text); margin-bottom: 8px; font-weight: 400; }
+  .dz-sub { font-size: 13px; color: var(--text2); line-height: 1.6; }
 
   .dz-btn {
     margin-top: 20px;
     display: inline-block;
-    padding: 10px 24px;
+    padding: 11px 26px;
     background: var(--accent);
-    color: #fff;
+    color: #0C1212;
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     border: none;
     font-family: 'Google Sans Code', monospace;
-    transition: background 0.2s;
   }
-
-  .dz-btn:hover { background: #a88848; }
-
   #file-input { display: none; }
-
-  .dz-formats {
-    font-size: 11px;
-    color: var(--text3);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
+  .dz-formats { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
 
   /* ── LOADER ── */
   #loader {
@@ -122,165 +92,107 @@
     opacity: 0; visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
   }
-
   #loader.visible { opacity: 1; visibility: visible; }
+  .loader-bar-bg { width: 220px; height: 2px; background: rgba(255,255,255,0.08); border-radius: 1px; overflow: hidden; }
+  .loader-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; border-radius: 1px; }
+  .loader-text { font-size: 12px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
 
-  .loader-bar-bg {
-    width: 220px; height: 2px;
-    background: rgba(0,0,0,0.1);
-    border-radius: 1px;
-    overflow: hidden;
-  }
-
-  .loader-bar-fill {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    transition: width 0.3s;
-    border-radius: 1px;
-  }
-
-  .loader-text {
-    font-size: 12px;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  /* ── FLIPBOOK APP ── */
+  /* ── APP ── */
   #app {
     position: fixed; inset: 0;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 0;
     opacity: 0; visibility: hidden;
     transition: opacity 0.6s, visibility 0.6s;
+    padding: 0 0 8px;
   }
-
   #app.visible { opacity: 1; visibility: visible; }
-
-  /* grain overlay */
-  #app::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-  }
 
   /* ── BOOK STAGE ── */
   #book-stage {
     position: relative;
     z-index: 1;
     perspective: 1400px;
+    -webkit-perspective: 1400px;
     flex-shrink: 0;
   }
 
   #book {
     position: relative;
     transform-style: preserve-3d;
-    /* size set by JS */
+    -webkit-transform-style: preserve-3d;
   }
 
-  /* shadow under book */
   #book-shadow {
     position: absolute;
-    bottom: -20px; left: 50%;
+    bottom: -16px; left: 50%;
     transform: translateX(-50%);
-    width: 88%; height: 28px;
+    width: 88%; height: 24px;
     background: radial-gradient(ellipse, rgba(0,0,0,0.55) 0%, transparent 68%);
     border-radius: 50%;
     pointer-events: none;
   }
 
-  /* Spine — dans #book-stage, hors du contexte preserve-3d */
   #spine-overlay {
     position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
+    left: 50%; top: 0;
     transform: translateX(-50%);
     width: 4px;
     background: #060e0e;
     z-index: 50;
     pointer-events: none;
   }
-  #spine { display: none; }
 
-  /* ── PAGES ── */
   .book-half {
     position: absolute;
-    top: 0;
-    width: 50%;
-    height: 100%;
+    top: 0; width: 50%; height: 100%;
     overflow: hidden;
   }
+  #left-half  { left: 0;  box-shadow: inset -12px 0 32px rgba(0,0,0,0.35); }
+  #right-half { right: 0; box-shadow: inset  12px 0 32px rgba(0,0,0,0.35); }
+  .book-half canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 
-  #left-half  { left: 0;   box-shadow: inset -12px 0 32px rgba(0,0,0,0.35); }
-  #right-half { right: 0;  box-shadow: inset  12px 0 32px rgba(0,0,0,0.35); }
-
-  .book-half canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  /* page turn flap */
+  /* flap */
   #flap {
-    position: absolute;
-    top: 0;
-    height: 100%;
+    position: absolute; top: 0; height: 100%;
     transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
     transform-origin: left center;
+    -webkit-transform-origin: left center;
     will-change: transform;
     z-index: 20;
     pointer-events: none;
     display: none;
   }
-
   #flap-front, #flap-back {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    backface-visibility: hidden;
-    overflow: hidden;
-  }
-
-  #flap-front { transform: rotateY(0deg); }
-  #flap-back  { transform: rotateY(180deg); }
-
-  #flap-front canvas, #flap-back canvas {
     position: absolute; top: 0; left: 0;
     width: 100%; height: 100%;
-    object-fit: cover; display: block;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow: hidden;
   }
-
-  /* curl shading on flap */
+  #flap-front { transform: rotateY(0deg); }
+  #flap-back  { transform: rotateY(180deg); }
+  #flap-front canvas, #flap-back canvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
   #flap-front::after {
     content: '';
-    position: absolute;
-    inset: 0;
+    position: absolute; inset: 0;
     background: linear-gradient(to right, rgba(0,0,0,0.18) 0%, transparent 30%);
     pointer-events: none;
   }
 
-  #page-edge { display: none; }
-
   /* ── CONTROLS ── */
   #controls {
-    position: relative;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    padding: 14px 0 0;
+    position: relative; z-index: 5;
+    display: flex; align-items: center; gap: 18px;
+    padding: 12px 0 0;
   }
 
   .ctrl-btn {
-    width: 36px; height: 36px;
+    width: 40px; height: 40px; /* plus grand sur mobile */
     border-radius: 50%;
     border: 1px solid rgba(255,255,255,0.15);
     background: rgba(255,255,255,0.06);
@@ -288,99 +200,36 @@
     display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
     color: #F3F3F3;
+    -webkit-tap-highlight-color: transparent;
   }
-
-  .ctrl-btn:hover { background: rgba(255,255,255,0.14); transform: scale(1.06); }
-  .ctrl-btn:active { transform: scale(0.96); }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.14); }
+  .ctrl-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.18); }
   .ctrl-btn:disabled { opacity: 0.2; cursor: default; transform: none; }
-  .ctrl-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ctrl-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   #page-info {
-    font-size: 13px;
-    color: #F3F3F3;
-    min-width: 80px;
-    text-align: center;
+    font-size: 13px; color: #F3F3F3;
+    min-width: 80px; text-align: center;
     letter-spacing: 0.06em;
-    font-weight: 400;
   }
 
-  /* dots */
-  #dots {
-    display: flex; gap: 5px; align-items: center;
-  }
-
-  .dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.18);
-    transition: all 0.3s;
-    cursor: pointer;
-  }
-
-  .dot.on { background: var(--accent); transform: scale(1.35); }
-  .dot:hover { background: rgba(0,0,0,0.4); }
-
-  /* ── BOTTOM BAR ── */
-  #bottom-bar {
-    position: relative;
-    z-index: 5;
-    display: flex; align-items: center; gap: 16px;
-    padding-top: 8px;
-  }
-
-  .icon-btn {
-    width: 30px; height: 30px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.15s;
-    color: var(--text2);
-  }
-  .icon-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); }
-  .icon-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-
-  #change-btn {
-    font-size: 11px;
-    padding: 5px 14px;
-    border: 1px solid rgba(0,0,0,0.15);
-    border-radius: 20px;
-    background: rgba(255,255,255,0.6);
-    cursor: pointer;
-    color: var(--text2);
-    font-family: 'Google Sans Code', monospace;
-    transition: all 0.2s;
-    letter-spacing: 0.03em;
-  }
-  #change-btn:hover { background: rgba(255,255,255,0.95); color: var(--text); }
-
-  /* fullscreen hint */
-  #hint {
+  /* ── SWIPE HINT (mobile uniquement) ── */
+  #swipe-hint {
     font-size: 10px;
     color: var(--text3);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    margin-top: 4px;
+    padding-top: 6px;
+    display: none;
   }
 
-  /* page input */
-  #page-jump {
-    width: 44px;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    text-align: center;
-    font-size: 12px;
-    font-family: 'Google Sans Code', monospace;
-    color: var(--text);
-    padding: 2px 0;
-    outline: none;
+  @media (max-width: 600px) {
+    #swipe-hint { display: block; }
   }
-  #page-jump:focus { border-bottom-color: var(--accent); }
 </style>
 </head>
 <body>
 
-<!-- DROP ZONE -->
 <div id="drop-zone">
   <div class="dz-card" id="dz-card" onclick="document.getElementById('file-input').click()">
     <div class="dz-icon">
@@ -394,66 +243,52 @@
   <input type="file" id="file-input" accept=".pdf,application/pdf">
 </div>
 
-<!-- LOADER -->
 <div id="loader">
-  <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--text2)">Chargement du PDF</div>
+  <div style="font-size:16px;color:var(--text2)">Chargement du PDF</div>
   <div class="loader-bar-bg"><div class="loader-bar-fill" id="loader-bar"></div></div>
   <div class="loader-text" id="loader-label">Préparation…</div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <div id="book-stage">
     <div id="book">
-      <div id="left-half" class="book-half">
-        <canvas id="left-canvas"></canvas>
-      </div>
-      <div id="right-half" class="book-half">
-        <canvas id="right-canvas"></canvas>
-      </div>
+      <div id="left-half" class="book-half"><canvas id="left-canvas"></canvas></div>
+      <div id="right-half" class="book-half"><canvas id="right-canvas"></canvas></div>
       <div id="flap">
         <div id="flap-front"><canvas id="flap-front-canvas"></canvas></div>
         <div id="flap-back"><canvas id="flap-back-canvas"></canvas></div>
       </div>
-      <div id="page-edge"></div>
       <div id="book-shadow"></div>
     </div>
     <div id="spine-overlay"></div>
   </div>
 
   <div id="controls">
-    <button class="ctrl-btn" id="btn-prev" title="Page précédente" onclick="turnLeft()">
+    <button class="ctrl-btn" id="btn-prev" onclick="turnLeft()">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
     <div id="page-info"></div>
-    <button class="ctrl-btn" id="btn-next" title="Page suivante" onclick="turnRight()">
+    <button class="ctrl-btn" id="btn-next" onclick="turnRight()">
       <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
   </div>
+  <div id="swipe-hint">← Swipe pour tourner les pages →</div>
 </div>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-/* ── STATE ── */
-let pdfDoc = null;
-let pages = [];          // array of ImageBitmap
-let totalPages = 0;
-let totalSpreads = 0;
-let currentSpread = 0;   // 0-based spread index
-let animating = false;
-const SCALE = 2;         // render resolution multiplier
-
-/* ── BOOK SIZING ── */
+let pdfDoc = null, totalPages = 0, totalSpreads = 0, currentSpread = 0, animating = false;
+const SCALE = 2;
 let bookW, bookH, halfW;
 
+/* ── SIZING ── */
 function computeBookSize() {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const maxW = Math.min(vw * 0.9, 900);
-  const maxH = vh * 0.70;
-  // typical page aspect ~1.414 (A4)
-  // book is 2 pages wide → width:height = 2*1/1.414 ≈ 1.414
+  const vw = window.innerWidth, vh = window.innerHeight;
+  // Sur mobile, on réduit la hauteur pour laisser de la place aux contrôles
+  const isMobile = vw < 600;
+  const maxW = Math.min(vw * (isMobile ? 0.98 : 0.92), 1000);
+  const maxH = vh * (isMobile ? 0.62 : 0.72);
   let w = maxW, h = w / 1.414;
   if (h > maxH) { h = maxH; w = h * 1.414; }
   bookW = Math.round(w);
@@ -468,54 +303,38 @@ function applyBookSize() {
   const flap = document.getElementById('flap');
   flap.style.width  = halfW + 'px';
   flap.style.height = bookH + 'px';
-  // Spine hors du preserve-3d : on fixe sa hauteur exacte
   const spine = document.getElementById('spine-overlay');
   spine.style.height = bookH + 'px';
-  spine.style.top    = '0px';
 }
 
-/* ── SPREAD HELPERS ── */
-// spread 0 → cover (page 1 only, right side)
-// spread 1 → pages 2-3, spread 2 → pages 4-5 …
-// last spread → last page on left (if even total)
+/* ── SPREADS ── */
 function spreadPages(s) {
   if (s === 0) return { left: null, right: 1 };
   const p = 2 + (s - 1) * 2;
   return { left: p, right: p + 1 <= totalPages ? p + 1 : null };
 }
 
-/* ── RENDER HELPERS ── */
+/* ── RENDER ── */
 async function renderPdfPageToCanvas(canvas, pageNum) {
-  if (!pageNum || pageNum < 1 || pageNum > totalPages) {
-    const ctx = canvas.getContext('2d');
-    canvas.width  = halfW * SCALE;
-    canvas.height = bookH * SCALE;
-    ctx.fillStyle = '#0C1212';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    return;
-  }
-  const page = pdfDoc ? await pdfDoc.getPage(pageNum) : null;
-  if (!page) return;
-  const vp = page.getViewport({ scale: 1 });
-  const scaleX = (halfW * SCALE) / vp.width;
-  const scaleY = (bookH * SCALE) / vp.height;
-  const scale  = Math.min(scaleX, scaleY);
-  const viewport = page.getViewport({ scale });
-  // Dessiner sur un canvas offscreen puis copier d'un coup → zéro flash
   const oc = document.createElement('canvas');
   oc.width  = halfW * SCALE;
   oc.height = bookH * SCALE;
   const ctx = oc.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, oc.width, oc.height);
-  // Centrage basé sur oc (offscreen), pas sur canvas (pas encore redimensionné)
-  const offX = (oc.width  - viewport.width)  / 2;
-  const offY = (oc.height - viewport.height) / 2;
-  ctx.save();
-  ctx.translate(offX, offY);
-  await page.render({ canvasContext: ctx, viewport }).promise;
-  ctx.restore();
-  // Copie atomique offscreen → canvas visible
+  if (!pageNum || pageNum < 1 || pageNum > totalPages) {
+    ctx.fillStyle = '#0C1212';
+    ctx.fillRect(0, 0, oc.width, oc.height);
+  } else {
+    const page = await pdfDoc.getPage(pageNum);
+    const vp = page.getViewport({ scale: 1 });
+    const scale = Math.min((halfW * SCALE) / vp.width, (bookH * SCALE) / vp.height);
+    const viewport = page.getViewport({ scale });
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, oc.width, oc.height);
+    ctx.save();
+    ctx.translate((oc.width - viewport.width) / 2, (oc.height - viewport.height) / 2);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    ctx.restore();
+  }
   canvas.width  = halfW * SCALE;
   canvas.height = bookH * SCALE;
   canvas.getContext('2d').drawImage(oc, 0, 0);
@@ -529,29 +348,24 @@ async function drawSpread(s) {
   ]);
 }
 
-/* ── PAGE TURN ANIMATION ── */
+/* ── ANIMATION ── */
 async function turnRight() {
   if (animating || currentSpread >= totalSpreads - 1) return;
   animating = true;
   const nextS = currentSpread + 1;
   const nextPages = spreadPages(nextS);
-
   const flapEl = document.getElementById('flap');
   flapEl.style.left = halfW + 'px';
   flapEl.style.transformOrigin = 'left center';
-  flapEl.style.display = 'none'; // caché pendant le render
-
-  const fc = document.getElementById('flap-front-canvas');
-  const bc = document.getElementById('flap-back-canvas');
+  flapEl.style.display = 'none';
 
   const { right: currRight } = spreadPages(currentSpread);
   await Promise.all([
-    renderPdfPageToCanvas(fc, currRight),
-    renderPdfPageToCanvas(bc, nextPages.left)
+    renderPdfPageToCanvas(document.getElementById('flap-front-canvas'), currRight),
+    renderPdfPageToCanvas(document.getElementById('flap-back-canvas'),  nextPages.left)
   ]);
-
   await renderPdfPageToCanvas(document.getElementById('right-canvas'), nextPages.right);
-  flapEl.style.display = 'block'; // prêt → on affiche
+  flapEl.style.display = 'block';
 
   let start = null;
   const dur = 650;
@@ -560,27 +374,23 @@ async function turnRight() {
     const t = Math.min((ts - start) / dur, 1);
     const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
     const deg = -180 * ease;
-    flapEl.style.transform = `rotateY(${deg}deg)`;
+    flapEl.style.transform = flapEl.style.webkitTransform = `rotateY(${deg}deg)`;
     const prog = Math.abs(deg) / 180;
-    const shadow = prog < 0.5
+    const sh = prog < 0.5
       ? `inset -${prog*20}px 0 ${prog*30}px rgba(0,0,0,${prog*0.25})`
       : `inset ${(1-prog)*20}px 0 ${(1-prog)*30}px rgba(0,0,0,${(1-prog)*0.25})`;
-    document.getElementById('left-half').style.boxShadow = shadow;
+    document.getElementById('left-half').style.boxShadow = sh;
     if (t < 1) requestAnimationFrame(step);
     else finish();
   }
-
   async function finish() {
-    // Pré-render AVANT de cacher le flap → zéro flash
     await renderPdfPageToCanvas(document.getElementById('left-canvas'), nextPages.left);
     flapEl.style.display = 'none';
-    flapEl.style.transform = '';
+    flapEl.style.transform = flapEl.style.webkitTransform = '';
     document.getElementById('left-half').style.boxShadow = 'inset -12px 0 32px rgba(0,0,0,0.35)';
     currentSpread = nextS;
-    updateUI();
-    animating = false;
+    updateUI(); animating = false;
   }
-
   requestAnimationFrame(step);
 }
 
@@ -589,25 +399,19 @@ async function turnLeft() {
   animating = true;
   const prevS = currentSpread - 1;
   const prevPages = spreadPages(prevS);
-
   const flapEl = document.getElementById('flap');
   flapEl.style.left = '0px';
   flapEl.style.transformOrigin = 'right center';
-  flapEl.style.display = 'none'; // caché pendant le render
-
-  const fc = document.getElementById('flap-front-canvas');
-  const bc = document.getElementById('flap-back-canvas');
+  flapEl.style.display = 'none';
+  flapEl.style.width = halfW + 'px';
 
   const { left: currLeft } = spreadPages(currentSpread);
   await Promise.all([
-    renderPdfPageToCanvas(fc, currLeft),
-    renderPdfPageToCanvas(bc, prevPages.right)
+    renderPdfPageToCanvas(document.getElementById('flap-front-canvas'), currLeft),
+    renderPdfPageToCanvas(document.getElementById('flap-back-canvas'),  prevPages.right)
   ]);
-
-  flapEl.style.width = halfW + 'px';
-
   await renderPdfPageToCanvas(document.getElementById('left-canvas'), prevPages.left);
-  flapEl.style.display = 'block'; // prêt → on affiche
+  flapEl.style.display = 'block';
 
   let start = null;
   const dur = 650;
@@ -616,183 +420,88 @@ async function turnLeft() {
     const t = Math.min((ts - start) / dur, 1);
     const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2;
     const deg = 180 * ease;
-    flapEl.style.transform = `rotateY(${deg}deg)`;
+    flapEl.style.transform = flapEl.style.webkitTransform = `rotateY(${deg}deg)`;
     const prog = Math.abs(deg) / 180;
-    const shadow = prog < 0.5
+    const sh = prog < 0.5
       ? `inset ${prog*20}px 0 ${prog*30}px rgba(0,0,0,${prog*0.25})`
       : `inset -${(1-prog)*20}px 0 ${(1-prog)*30}px rgba(0,0,0,${(1-prog)*0.25})`;
-    document.getElementById('right-half').style.boxShadow = shadow;
+    document.getElementById('right-half').style.boxShadow = sh;
     if (t < 1) requestAnimationFrame(step);
     else finish();
   }
-
   async function finish() {
-    // Pré-render AVANT de cacher le flap → zéro flash
     await renderPdfPageToCanvas(document.getElementById('right-canvas'), prevPages.right);
     flapEl.style.display = 'none';
-    flapEl.style.transform = '';
+    flapEl.style.transform = flapEl.style.webkitTransform = '';
     document.getElementById('right-half').style.boxShadow = 'inset 12px 0 32px rgba(0,0,0,0.35)';
     currentSpread = prevS;
-    updateUI();
-    animating = false;
+    updateUI(); animating = false;
   }
-
   requestAnimationFrame(step);
 }
 
 async function goToSpread(s) {
   if (animating || s === currentSpread) return;
   currentSpread = Math.max(0, Math.min(s, totalSpreads - 1));
-  await drawSpread(currentSpread);
-  updateUI();
+  await drawSpread(currentSpread); updateUI();
 }
 
-/* ── UI UPDATE ── */
+/* ── UI ── */
 function updateUI() {
   const { left, right } = spreadPages(currentSpread);
-  const leftStr  = left  ? left  : '—';
-  const rightStr = right ? right : '—';
-  document.getElementById('page-info').textContent = `${leftStr}${right ? ' – ' + rightStr : ''} / ${totalPages}`;
+  const l = left ? left : '—', r = right ? right : '—';
+  document.getElementById('page-info').textContent = `${l}${right ? ' – ' + r : ''} / ${totalPages}`;
   document.getElementById('btn-prev').disabled = currentSpread === 0;
   document.getElementById('btn-next').disabled = currentSpread === totalSpreads - 1;
 }
 
-/* ── PDF LOADING ── */
-async function loadPDF(file) {
-  document.getElementById('drop-zone').classList.add('hidden');
-  document.getElementById('loader').classList.add('visible');
-
-  const bar   = document.getElementById('loader-bar');
-  const label = document.getElementById('loader-label');
-
-  const arrayBuffer = await file.arrayBuffer();
-  label.textContent = 'Lecture du fichier…';
-  bar.style.width = '15%';
-
-  pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  totalPages   = pdfDoc.numPages;
-  // spreads: spread 0 = cover (right only), then pairs
-  totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
-
-  label.textContent = 'Rendu des pages…';
-  computeBookSize();
-  applyBookSize();
-
-  currentSpread = 0;
-  bar.style.width = '40%';
-  await drawSpread(0);
-  bar.style.width = '90%';
-
-  label.textContent = 'Finalisation…';
-  await new Promise(r => setTimeout(r, 200));
-  bar.style.width = '100%';
-
+/* ── LOADING ── */
+async function finishLoading() {
+  document.getElementById('loader-bar').style.width = '100%';
   await new Promise(r => setTimeout(r, 300));
   document.getElementById('loader').classList.remove('visible');
   document.getElementById('app').classList.add('visible');
-  // Attendre que #book-stage ait ses vraies dimensions via ResizeObserver
   await new Promise(r => {
-    const stage = document.getElementById('book-stage');
-    const ro = new ResizeObserver(async (entries) => {
-      if (entries[0].contentRect.width > 0) {
-        ro.disconnect();
-        computeBookSize();
-        applyBookSize();
-        await drawSpread(0);
-        updateUI();
-        r();
-      }
+    const ro = new ResizeObserver(e => {
+      if (e[0].contentRect.width > 0) { ro.disconnect(); r(); }
     });
-    ro.observe(stage);
+    ro.observe(document.getElementById('book-stage'));
   });
+  computeBookSize(); applyBookSize();
+  await drawSpread(0); updateUI();
 }
 
-/* ── EVENTS ── */
-document.addEventListener('DOMContentLoaded', function() {
-const fileInput = document.getElementById('file-input');
-fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) loadPDF(e.target.files[0]);
-});
-
-const dzCard = document.getElementById('dz-card');
-dzCard.addEventListener('dragover', e => { e.preventDefault(); dzCard.classList.add('drag-over'); });
-dzCard.addEventListener('dragleave', () => dzCard.classList.remove('drag-over'));
-dzCard.addEventListener('drop', e => {
-  e.preventDefault();
-  dzCard.classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (f && f.type === 'application/pdf') loadPDF(f);
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === 'PageDown') turnRight();
-  if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   turnLeft();
-  if (e.key === 'Home') goToSpread(0);
-  if (e.key === 'End')  goToSpread(totalSpreads - 1);
-});
-
-// Click left/right half of book to turn
-document.getElementById('left-half').addEventListener('click', () => turnLeft());
-document.getElementById('right-half').addEventListener('click', () => turnRight());
-
-
-window.addEventListener('resize', async () => {
-  computeBookSize();
-  applyBookSize();
-  if (pdfDoc) await drawSpread(currentSpread);
-});
-
-
-function resetApp() {
-  document.getElementById('app').classList.remove('visible');
-  document.getElementById('drop-zone').classList.remove('hidden');
-  document.getElementById('loader-bar').style.width = '0%';
-  pdfDoc = null;
-  pages = [];
-  document.getElementById('file-input').value = '';
+async function loadPDF(file) {
+  document.getElementById('drop-zone').classList.add('hidden');
+  document.getElementById('loader').classList.add('visible');
+  const bar = document.getElementById('loader-bar');
+  const label = document.getElementById('loader-label');
+  label.textContent = 'Lecture…'; bar.style.width = '15%';
+  const ab = await file.arrayBuffer(); bar.style.width = '40%';
+  pdfDoc = await pdfjsLib.getDocument({ data: ab }).promise;
+  totalPages = pdfDoc.numPages;
+  totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
+  bar.style.width = '70%'; label.textContent = 'Rendu…';
+  await finishLoading();
 }
 
-/* ── CHARGEMENT DEPUIS URL ?pdf=... ── */
 async function loadPDFFromUrl(url) {
   document.getElementById('drop-zone').classList.add('hidden');
   document.getElementById('loader').classList.add('visible');
-
-  const bar   = document.getElementById('loader-bar');
+  const bar = document.getElementById('loader-bar');
   const label = document.getElementById('loader-label');
-  label.textContent = 'Chargement…';
-  bar.style.width = '10%';
-
+  label.textContent = 'Chargement…'; bar.style.width = '10%';
   try {
-    label.textContent = 'Lecture du fichier…';
-    // PDF.js charge directement l'URL (pas de fetch intermédiaire)
-    const loadingTask = pdfjsLib.getDocument({
-      url: url,
-      withCredentials: false,
-    });
-    loadingTask.onProgress = (p) => {
-      if (p.total) bar.style.width = (10 + 60 * p.loaded / p.total) + '%';
-    };
+    const task = pdfjsLib.getDocument({ url, withCredentials: false });
+    task.onProgress = p => { if (p.total) bar.style.width = (10 + 60 * p.loaded / p.total) + '%'; };
     bar.style.width = '30%';
-    pdfDoc = await loadingTask.promise;
-    totalPages   = pdfDoc.numPages;
+    pdfDoc = await task.promise;
+    totalPages = pdfDoc.numPages;
     totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
-
-    label.textContent = 'Rendu des pages…';
-    computeBookSize();
-    applyBookSize();
-    currentSpread = 0;
-    bar.style.width = '70%';
-    await drawSpread(0);
-    bar.style.width = '100%';
-
-    await new Promise(r => setTimeout(r, 300));
-    document.getElementById('loader').classList.remove('visible');
-    document.getElementById('app').classList.add('visible');
-
-    updateUI();
+    label.textContent = 'Rendu…'; bar.style.width = '70%';
+    await finishLoading();
   } catch (err) {
     label.textContent = 'Erreur : ' + err.message;
-    bar.style.width = '0%';
     setTimeout(() => {
       document.getElementById('loader').classList.remove('visible');
       document.getElementById('drop-zone').classList.remove('hidden');
@@ -800,13 +509,80 @@ async function loadPDFFromUrl(url) {
   }
 }
 
-// Au chargement, vérifier si ?pdf= est dans l'URL
-(function() {
+/* ── EVENTS ── */
+document.addEventListener('DOMContentLoaded', function () {
+
+  document.getElementById('file-input').addEventListener('change', e => {
+    if (e.target.files[0]) loadPDF(e.target.files[0]);
+  });
+
+  const dzCard = document.getElementById('dz-card');
+  dzCard.addEventListener('dragover', e => { e.preventDefault(); dzCard.style.background = 'rgba(243,243,243,0.04)'; });
+  dzCard.addEventListener('dragleave', () => dzCard.style.background = '');
+  dzCard.addEventListener('drop', e => {
+    e.preventDefault(); dzCard.style.background = '';
+    const f = e.dataTransfer.files[0];
+    if (f && f.type === 'application/pdf') loadPDF(f);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') turnRight();
+    if (e.key === 'ArrowLeft'  || e.key === 'PageUp')   turnLeft();
+    if (e.key === 'Home') goToSpread(0);
+    if (e.key === 'End')  goToSpread(totalSpreads - 1);
+  });
+
+  /* ── SWIPE TACTILE ── */
+  let touchStartX = 0, touchStartY = 0, touchMoved = false;
+
+  const bookStage = document.getElementById('book-stage');
+
+  bookStage.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchMoved  = false;
+  }, { passive: true });
+
+  bookStage.addEventListener('touchmove', e => {
+    const dx = Math.abs(e.touches[0].clientX - touchStartX);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if (dx > 8 || dy > 8) touchMoved = true;
+    // Empêche le scroll de la page si swipe horizontal
+    if (dx > dy) e.preventDefault();
+  }, { passive: false });
+
+  bookStage.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+
+    if (absDx > 40 && absDx > absDy * 1.5) {
+      // Swipe horizontal suffisant → tourner
+      if (dx < 0) turnRight(); // swipe gauche → page suivante
+      else         turnLeft();  // swipe droite → page précédente
+    } else if (!touchMoved) {
+      // Tap simple → utiliser la position pour décider
+      const rect = bookStage.getBoundingClientRect();
+      const tapX = e.changedTouches[0].clientX - rect.left;
+      if (tapX < bookW / 2) turnLeft();
+      else                   turnRight();
+    }
+  }, { passive: true });
+
+  /* ── CLICK SOURIS (desktop) ── */
+  document.getElementById('left-half').addEventListener('click',  () => turnLeft());
+  document.getElementById('right-half').addEventListener('click', () => turnRight());
+
+  window.addEventListener('resize', async () => {
+    computeBookSize(); applyBookSize();
+    if (pdfDoc) await drawSpread(currentSpread);
+  });
+
+  /* ── URL ?pdf= ── */
   const params = new URLSearchParams(window.location.search);
   const pdfUrl = params.get('pdf');
   if (pdfUrl) loadPDFFromUrl(decodeURIComponent(pdfUrl));
-})();
-}); // DOMContentLoaded
+});
 </script>
 </body>
 </html>
